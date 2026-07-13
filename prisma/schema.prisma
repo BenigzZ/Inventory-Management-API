@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  STAFF
+  VIEWER
+}
+
+enum TransactionType {
+  PURCHASE
+  SALE
+  RETURN
+  DAMAGE
+  TRANSFER_IN
+  TRANSFER_OUT
+  ADJUSTMENT
+}
+
+enum PurchaseOrderStatus {
+  PENDING
+  RECEIVED
+  CANCELLED
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(STAFF)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
+
+  sales                Sale[]
+  purchaseOrders       PurchaseOrder[]
+  inventoryTransactions InventoryTransaction[]
+
+  @@map("users")
+}
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt      @map("updated_at")
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Supplier {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
+
+  purchaseOrders PurchaseOrder[]
+  products       Product[]       
+
+  @@map("suppliers")
+}
+
+model Warehouse {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  address   String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
+
+  inventoryTransactions InventoryTransaction[]
+
+  @@map("warehouses")
+}
+
+model Product {
+  id           Int      @id @default(autoincrement())
+  sku          String   @unique
+  name         String
+  description  String?
+  price        Decimal  @db.Decimal(10, 2)
+  costPrice    Decimal  @map("cost_price") @db.Decimal(10, 2)
+  reorderLevel Int      @default(0) @map("reorder_level")
+  isActive     Boolean  @default(true) @map("is_active")
+  categoryId   Int      @map("category_id")
+  supplierId   Int?     @map("supplier_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt      @map("updated_at")
+
+  category              Category               @relation(fields: [categoryId], references: [id])
+  supplier              Supplier?              @relation(fields: [supplierId], references: [id])
+  inventoryTransactions InventoryTransaction[]
+  purchaseOrderItems    PurchaseOrderItem[]
+  saleItems             SaleItem[]
+
+  @@map("products")
+}
+
+model PurchaseOrder {
+  id          Int                @id @default(autoincrement())
+  poNumber    String             @unique @map("po_number")
+  supplierId  Int                @map("supplier_id")
+  userId      Int                @map("user_id")
+  status      PurchaseOrderStatus @default(PENDING)
+  totalAmount Decimal            @map("total_amount") @db.Decimal(12, 2) @default(0)
+  notes       String?
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt      @map("updated_at")
+
+  supplier Supplier            @relation(fields: [supplierId], references: [id])
+  user     User                @relation(fields: [userId], references: [id])
+  items    PurchaseOrderItem[]
+
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id              Int     @id @default(autoincrement())
+  purchaseOrderId Int     @map("purchase_order_id")
+  productId       Int     @map("product_id")
+  quantity        Int
+  unitCost        Decimal @map("unit_cost") @db.Decimal(10, 2)
+  totalCost       Decimal @map("total_cost") @db.Decimal(12, 2)
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product       Product       @relation(fields: [productId], references: [id])
+
+  @@map("purchase_order_items")
+}
+
+model Sale {
+  id          Int      @id @default(autoincrement())
+  saleNumber  String   @unique @map("sale_number")
+  userId      Int      @map("user_id")
+  totalAmount Decimal  @map("total_amount") @db.Decimal(12, 2) @default(0)
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt      @map("updated_at")
+
+  user  User       @relation(fields: [userId], references: [id])
+  items SaleItem[]
+
+  @@map("sales")
+}
+
+model SaleItem {
+  id         Int     @id @default(autoincrement())
+  saleId     Int     @map("sale_id")
+  productId  Int     @map("product_id")
+  quantity   Int
+  unitPrice  Decimal @map("unit_price") @db.Decimal(10, 2)
+  totalPrice Decimal @map("total_price") @db.Decimal(12, 2)
+
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("sale_items")
+}
+
+model InventoryTransaction {
+  id            Int             @id @default(autoincrement())
+  productId     Int             @map("product_id")
+  warehouseId   Int             @map("warehouse_id")
+  type          TransactionType
+  quantity      Int
+  referenceType String?         @map("reference_type")
+  referenceId   Int?            @map("reference_id")
+  notes         String?
+  userId        Int             @map("user_id")
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  product   Product    @relation(fields: [productId], references: [id])
+  warehouse Warehouse  @relation(fields: [warehouseId], references: [id])
+  user      User       @relation(fields: [userId], references: [id])
+
+  @@index([productId, createdAt])
+  @@index([referenceType, referenceId])
+  @@map("inventory_transactions")
+}

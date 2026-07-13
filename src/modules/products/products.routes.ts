@@ -1,0 +1,13 @@
+import { Router } from 'express';
+import { ProductController } from './products.controller';
+import { validate } from '../../middleware/validate';
+import { createProductSchema, updateProductSchema } from './products.validation';
+import { authenticate, authorize } from '../../middleware/auth';
+const router = Router();
+router.use(authenticate);
+router.get('/', ProductController.findAll);
+router.get('/:id', ProductController.findById);
+router.post('/', authorize('ADMIN', 'STAFF'), validate(createProductSchema), ProductController.create);
+router.put('/:id', authorize('ADMIN', 'STAFF'), validate(updateProductSchema), ProductController.update);
+router.delete('/:id', authorize('ADMIN'), ProductController.delete);
+export { router };

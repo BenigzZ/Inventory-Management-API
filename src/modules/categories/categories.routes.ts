@@ -1,0 +1,13 @@
+import { Router } from 'express';
+import { CategoryController } from './categories.controller';
+import { validate } from '../../middleware/validate';
+import { createCategorySchema, updateCategorySchema } from './categories.validation';
+import { authenticate, authorize } from '../../middleware/auth';
+const router = Router();
+router.use(authenticate);
+router.get('/', CategoryController.findAll);
+router.get('/:id', CategoryController.findById);
+router.post('/', authorize('ADMIN', 'STAFF'), validate(createCategorySchema), CategoryController.create);
+router.put('/:id', authorize('ADMIN', 'STAFF'), validate(updateCategorySchema), CategoryController.update);
+router.delete('/:id', authorize('ADMIN'), CategoryController.delete);
+export { router };

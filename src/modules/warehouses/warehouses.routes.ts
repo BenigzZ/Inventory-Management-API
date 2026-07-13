@@ -1,0 +1,13 @@
+import { Router } from 'express';
+import { WarehouseController } from './warehouses.controller';
+import { validate } from '../../middleware/validate';
+import { createWarehouseSchema, updateWarehouseSchema } from './warehouses.validation';
+import { authenticate, authorize } from '../../middleware/auth';
+const router = Router();
+router.use(authenticate);
+router.get('/', WarehouseController.findAll);
+router.get('/:id', WarehouseController.findById);
+router.post('/', authorize('ADMIN'), validate(createWarehouseSchema), WarehouseController.create);
+router.put('/:id', authorize('ADMIN'), validate(updateWarehouseSchema), WarehouseController.update);
+router.delete('/:id', authorize('ADMIN'), WarehouseController.delete);
+export { router };

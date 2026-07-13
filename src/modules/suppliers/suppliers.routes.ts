@@ -1,0 +1,13 @@
+import { Router } from 'express';
+import { SupplierController } from './suppliers.controller';
+import { validate } from '../../middleware/validate';
+import { createSupplierSchema, updateSupplierSchema } from './suppliers.validation';
+import { authenticate, authorize } from '../../middleware/auth';
+const router = Router();
+router.use(authenticate);
+router.get('/', SupplierController.findAll);
+router.get('/:id', SupplierController.findById);
+router.post('/', authorize('ADMIN', 'STAFF'), validate(createSupplierSchema), SupplierController.create);
+router.put('/:id', authorize('ADMIN', 'STAFF'), validate(updateSupplierSchema), SupplierController.update);
+router.delete('/:id', authorize('ADMIN'), SupplierController.delete);
+export { router };

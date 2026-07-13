@@ -1,0 +1,8 @@
+import { prisma } from '../../config/prisma';
+export class SupplierService {
+  static async create(data: any) { const existing = await prisma.supplier.findUnique({ where: { email: data.email } }); if (existing) throw Object.assign(new Error('Supplier with this email already exists'), { statusCode: 409 }); return prisma.supplier.create({ data }); }
+  static async findAll(page = 1, limit = 20) { const skip = (page - 1) * limit; const [items, total] = await Promise.all([prisma.supplier.findMany({ skip, take: limit, orderBy: { name: 'asc' } }), prisma.supplier.count()]); return { items, total, page, pages: Math.ceil(total / limit) }; }
+  static async findById(id: number) { const supplier = await prisma.supplier.findUnique({ where: { id }, include: { purchaseOrders: { take: 10, orderBy: { createdAt: 'desc' } } } }); if (!supplier) throw Object.assign(new Error('Supplier not found'), { statusCode: 404 }); return supplier; }
+  static async update(id: number, data: any) { await this.findById(id); if (data.email) { const existing = await prisma.supplier.findFirst({ where: { email: data.email, NOT: { id } } }); if (existing) throw Object.assign(new Error('Supplier with this email already exists'), { statusCode: 409 }); } return prisma.supplier.update({ where: { id }, data }); }
+  static async delete(id: number) { const supplier = await prisma.supplier.findUnique({ where: { id }, include: { purchaseOrders: true } }); if (!supplier) throw Object.assign(new Error('Supplier not found'), { statusCode: 404 }); if (supplier.purchaseOrders.length > 0) throw Object.assign(new Error('Cannot delete supplier with associated purchase orders'), { statusCode: 400 }); return prisma.supplier.delete({ where: { id } }); }
+}

@@ -1,0 +1,13 @@
+import { Router } from 'express';
+import { PurchaseOrderController } from './purchase-orders.controller';
+import { validate } from '../../middleware/validate';
+import { createPurchaseOrderSchema, receivePurchaseOrderSchema } from './purchase-orders.validation';
+import { authenticate, authorize } from '../../middleware/auth';
+const router = Router();
+router.use(authenticate);
+router.get('/', PurchaseOrderController.findAll);
+router.get('/:id', PurchaseOrderController.findById);
+router.post('/', authorize('ADMIN', 'STAFF'), validate(createPurchaseOrderSchema), PurchaseOrderController.create);
+router.post('/:id/receive', authorize('ADMIN', 'STAFF'), validate(receivePurchaseOrderSchema), PurchaseOrderController.receive);
+router.post('/:id/cancel', authorize('ADMIN', 'STAFF'), PurchaseOrderController.cancel);
+export { router };

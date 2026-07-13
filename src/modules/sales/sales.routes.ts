@@ -1,0 +1,11 @@
+import { Router } from 'express';
+import { SaleController } from './sales.controller';
+import { validate } from '../../middleware/validate';
+import { createSaleSchema } from './sales.validation';
+import { authenticate, authorize } from '../../middleware/auth';
+const router = Router();
+router.use(authenticate);
+router.get('/', SaleController.findAll);
+router.get('/:id', SaleController.findById);
+router.post('/', authorize('ADMIN', 'STAFF'), validate(createSaleSchema), SaleController.create);
+export { router };
